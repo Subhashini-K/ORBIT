@@ -31,3 +31,15 @@ export interface AuthResponse {
   user: PublicUser;
   token: string;
 }
+
+export interface ProfileResponse extends PublicUser {}
+
+export interface UpdateProfileBody {
+  name?: string;
+  email?: string;
+}
+
+export interface ChangePasswordBody {
+  currentPassword: string;
+  newPassword: string;
+}

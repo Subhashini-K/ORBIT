@@ -36,3 +36,21 @@ export interface DashboardStats {
   contextUnderstanding: number; // percentage
   automationsActive: number;
 }
+
+export interface PublicUser {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  createdAt: string;
+}
+
+export interface UpdateProfileBody {
+  name?: string;
+  email?: string;
+}
+
+export interface ChangePasswordBody {
+  currentPassword: string;
+  newPassword: string;
+}

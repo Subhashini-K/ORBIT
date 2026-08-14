@@ -7,36 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/store/AuthContext";
+import { useUpdateProfile } from "../hooks/useSettings";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 }
 
-/**
- * Mock-only profile editing. There is no PATCH /profile endpoint yet — saving
- * just updates the local AuthContext user object so the UI feels real.
- */
 export function ProfileTab() {
-  const { user, setSession } = useAuth();
+  const { user } = useAuth();
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
+  
+  const updateProfile = useUpdateProfile();
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
-    setSaved(false);
-    setTimeout(() => {
-      setSession({
-        user: { ...user, name: name.trim() || user.name, email: email.trim() || user.email },
-        token: `orbit_mock_token_${crypto.randomUUID()}`,
-      });
-      setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    }, 700);
+    
+    updateProfile.mutate(
+      { name: name.trim() || user.name, email: email.trim() || user.email },
+      {
+        onSuccess: () => {
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2500);
+        },
+      }
+    );
   }
 
   return (
@@ -81,7 +78,7 @@ export function ProfileTab() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button type="submit" loading={saving}>
+            <Button type="submit" loading={updateProfile.isPending}>
               Save changes
             </Button>
             {saved && (
@@ -91,6 +88,15 @@ export function ProfileTab() {
                 className="flex items-center gap-1.5 text-sm text-emerald-400"
               >
                 <Check className="h-4 w-4" /> Saved
+              </motion.span>
+            )}
+            {updateProfile.isError && (
+              <motion.span
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-1.5 text-sm text-red-400"
+              >
+                Failed to save. Try again.
               </motion.span>
             )}
           </div>

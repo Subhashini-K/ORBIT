@@ -6,28 +6,51 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PasswordInput, PasswordStrengthMeter } from "@/features/auth";
+import { useChangePassword, useDeleteAccount } from "../hooks/useSettings";
+import { useAuth } from "@/features/auth/store/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const MOCK_SESSIONS = [
   { id: "s1", device: "MacBook Pro", location: "Chennai, IN", icon: Laptop, current: true },
   { id: "s2", device: "iPhone 15", location: "Chennai, IN", icon: Smartphone, current: false },
 ];
 
-/** Mock only — no real password change or session revocation happens here. */
 export function SecurityTab() {
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [twoFactor, setTwoFactor] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const changePassword = useChangePassword();
+  const deleteAccount = useDeleteAccount();
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      setSaved(true);
-      setNewPassword("");
-      setTimeout(() => setSaved(false), 2500);
-    }, 700);
+    changePassword.mutate(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          setSaved(true);
+          setCurrentPassword("");
+          setNewPassword("");
+          setTimeout(() => setSaved(false), 2500);
+        },
+      }
+    );
+  }
+
+  function handleDeleteAccount() {
+    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      return;
+    }
+    deleteAccount.mutate(undefined, {
+      onSuccess: () => {
+        logout();
+        navigate("/login", { replace: true });
+      },
+    });
   }
 
   return (
@@ -40,6 +63,15 @@ export function SecurityTab() {
         <CardContent>
           <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="current-password">Current password</Label>
+              <PasswordInput
+                id="current-password"
+                placeholder="Enter your current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="new-password">New password</Label>
               <PasswordInput
                 id="new-password"
@@ -50,7 +82,7 @@ export function SecurityTab() {
               <PasswordStrengthMeter password={newPassword} />
             </div>
             <div className="flex items-center gap-3">
-              <Button type="submit" loading={saving} disabled={newPassword.length < 8}>
+              <Button type="submit" loading={changePassword.isPending} disabled={newPassword.length < 8 || currentPassword.length === 0}>
                 Update password
               </Button>
               {saved && (
@@ -60,6 +92,15 @@ export function SecurityTab() {
                   className="flex items-center gap-1.5 text-sm text-emerald-400"
                 >
                   <Check className="h-4 w-4" /> Updated
+                </motion.span>
+              )}
+              {changePassword.isError && (
+                <motion.span
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-1.5 text-sm text-red-400"
+                >
+                  Failed to update. Try again.
                 </motion.span>
               )}
             </div>
@@ -117,6 +158,24 @@ export function SecurityTab() {
               )}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger zone</CardTitle>
+          <CardDescription>Irreversible actions.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">Delete account</p>
+              <p className="text-xs text-slate-500">Permanently delete your account and all data.</p>
+            </div>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAccount} loading={deleteAccount.isPending}>
+              Delete account
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
