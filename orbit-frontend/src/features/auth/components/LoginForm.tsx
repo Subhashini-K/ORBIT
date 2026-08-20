@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, type FormEvent, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { ApiError } from "@/lib/apiClient";
 
 export function LoginForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const login = useLogin();
 
   const [email, setEmail] = useState("");
@@ -21,11 +22,26 @@ export function LoginForm() {
   const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<AuthFieldErrors>({});
 
+  // Check for error from OAuth callback redirect
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      // If it's a 409 conflict about email already existing, show error on email field
+      if (error.includes("already exists")) {
+        setErrors({ email: error });
+      } else {
+        setErrors({ form: error });
+      }
+      // Clear the error from URL
+      navigate("/login", { replace: true });
+    }
+  }, [searchParams, navigate]);
+
   function validate(): boolean {
     const next: AuthFieldErrors = {};
     if (!email.trim()) next.email = "Email is required.";
     if (!password) next.password = "Password is required.";
-    setErrors(next);
+    setErrors((prev) => ({ ...prev, ...next }));
     return Object.keys(next).length === 0;
   }
 
@@ -104,7 +120,7 @@ export function LoginForm() {
         </span>
       </div>
 
-      <SocialAuthButtons />
+      <SocialAuthButtons mode="login" />
 
       <p className="text-center text-sm text-slate-400">
         New to Orbit?{" "}

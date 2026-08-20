@@ -22,6 +22,14 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
     throw ApiError.unauthorized("That password doesn't look right. Try again.");
   }
 
+  if (user.provider !== "local") {
+    throw ApiError.unauthorized(`This account uses ${user.provider} sign-in. Please use the corresponding button.`);
+  }
+
+  if (!user.passwordHash) {
+    throw ApiError.unauthorized("This account doesn't have a password set. Please use OAuth sign-in.");
+  }
+
   const valid = await comparePassword(input.password, user.passwordHash);
   if (!valid) {
     throw ApiError.unauthorized("That password doesn't look right. Try again.");
@@ -42,11 +50,79 @@ export async function signup(input: SignupInput): Promise<AuthResponse> {
     name: input.name,
     email: input.email.toLowerCase(),
     passwordHash,
+    provider: "local",
   });
 
   // Give every new user the same starting set of (disconnected) sources and
   // automations the frontend's mock fixtures used, so the UI isn't empty.
   await seedNewUserDefaults(user.id);
+
+  const token = signToken(user.id);
+  return { user: toPublicUser(user), token };
+}
+
+/** Find or create a user from an OAuth provider profile. */
+export async function findOrCreateOAuthUser(
+  provider: "google" | "github",
+  providerId: string,
+  email: string,
+  name: string,
+  avatarUrl?: string,
+  mode: "login" | "signup" = "login"
+): Promise<AuthResponse> {
+  const lowerEmail = email.toLowerCase();
+
+  // In signup mode, check email FIRST to prevent creating duplicate accounts
+  if (mode === "signup") {
+    const existingByEmail = await User.findOne({ email: lowerEmail });
+    if (existingByEmail) {
+      throw ApiError.conflict("An account with that email already exists. Please sign in instead.");
+    }
+  }
+
+  // First try to find by provider + providerId
+  let user = await User.findOne({ provider, providerId });
+
+  if (!user) {
+    // Then try to find by email (link accounts) - only in login mode
+    if (mode === "login") {
+      user = await User.findOne({ email: lowerEmail });
+
+      if (user) {
+        // Link the OAuth provider to existing account (login mode)
+        user.provider = provider;
+        user.providerId = providerId;
+        if (avatarUrl && !user.avatarUrl) user.avatarUrl = avatarUrl;
+        await user.save();
+      } else {
+        // Create new OAuth user
+        user = await User.create({
+          name,
+          email: lowerEmail,
+          passwordHash: undefined,
+          provider,
+          providerId,
+          avatarUrl,
+        });
+
+        // Give every new user the same starting set of (disconnected) sources and automations
+        await seedNewUserDefaults(user.id);
+      }
+    } else {
+      // Signup mode: email doesn't exist, create new user
+      user = await User.create({
+        name,
+        email: lowerEmail,
+        passwordHash: undefined,
+        provider,
+        providerId,
+        avatarUrl,
+      });
+
+      // Give every new user the same starting set of (disconnected) sources and automations
+      await seedNewUserDefaults(user.id);
+    }
+  }
 
   const token = signToken(user.id);
   return { user: toPublicUser(user), token };

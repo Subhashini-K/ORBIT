@@ -11,6 +11,7 @@ import InsightsPage from "@/features/insights/pages/InsightsPage";
 import AutomationsPage from "@/features/automations/pages/AutomationsPage";
 import SettingsPage from "@/features/settings/pages/SettingsPage";
 import OAuthCallbackPage from "@/features/oauth/pages/OAuthCallbackPage";
+import { OAuthCallbackPage as AuthOAuthCallbackPage } from "@/features/auth/pages/OAuthCallbackPage";
 import { NotFoundPage } from "@/components/common/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -20,6 +21,9 @@ export const router = createBrowserRouter([
   { path: "/login", element: <GuestOnly><LoginPage /></GuestOnly> },
   { path: "/signup", element: <GuestOnly><SignupPage /></GuestOnly> },
   { path: "/forgot-password", element: <GuestOnly><ForgotPasswordPage /></GuestOnly> },
+
+  // OAuth Auth callback (for sign-in with Google/GitHub)
+  { path: "/auth/callback", element: <AuthOAuthCallbackPage /> },
 
   // Authenticated app routes
   { path: "/dashboard", element: <RequireAuth><DashboardPage /></RequireAuth> },

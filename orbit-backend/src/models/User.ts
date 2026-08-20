@@ -4,8 +4,10 @@ const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String }, // Optional for OAuth users
     avatarUrl: { type: String },
+    provider: { type: String, enum: ["local", "google", "github"] }, // Auth provider
+    providerId: { type: String }, // Provider's user ID (Google sub, GitHub id)
   },
   { timestamps: true }
 );
