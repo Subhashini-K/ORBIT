@@ -1,14 +1,39 @@
 import { Button } from "@/components/ui/button";
+import { useOAuthLogin } from "../hooks";
 
-/** Mock social sign-in — not wired to any real OAuth provider in Phase 1. */
-export function SocialAuthButtons() {
+interface SocialAuthButtonsProps {
+  mode?: "login" | "signup";
+}
+
+/** Social sign-in buttons for Google and GitHub OAuth. */
+export function SocialAuthButtons({ mode = "login" }: SocialAuthButtonsProps) {
+  const oauthLogin = useOAuthLogin();
+
+  function handleClick(provider: "google" | "github") {
+    oauthLogin.mutate({ provider, options: { mode } });
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Button type="button" variant="outline" size="default" className="w-full">
+      <Button
+        type="button"
+        variant="outline"
+        size="default"
+        className="w-full"
+        onClick={() => handleClick("google")}
+        loading={oauthLogin.isPending}
+      >
         <GoogleIcon />
         Google
       </Button>
-      <Button type="button" variant="outline" size="default" className="w-full">
+      <Button
+        type="button"
+        variant="outline"
+        size="default"
+        className="w-full"
+        onClick={() => handleClick("github")}
+        loading={oauthLogin.isPending}
+      >
         <GithubIcon />
         GitHub
       </Button>

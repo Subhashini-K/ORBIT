@@ -60,6 +60,10 @@ export async function changePassword(userId: string, data: ChangePasswordBody): 
     throw ApiError.notFound("User not found.");
   }
 
+  if (!user.passwordHash) {
+    throw ApiError.badRequest("This account doesn't have a password set. Cannot change password for OAuth accounts.");
+  }
+
   const isValid = await comparePassword(data.currentPassword, user.passwordHash);
   if (!isValid) {
     throw ApiError.unauthorized("Current password is incorrect.");

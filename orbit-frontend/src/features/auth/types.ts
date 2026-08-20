@@ -35,3 +35,6 @@ export interface AuthFieldErrors {
   agreedToTerms?: string;
   form?: string;
 }
+
+// OAuth Auth types
+export type OAuthProvider = "google" | "github";

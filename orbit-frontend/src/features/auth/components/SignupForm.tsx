@@ -43,7 +43,13 @@ export function SignupForm() {
         onSuccess: () => navigate("/dashboard", { replace: true }),
         onError: (err) => {
           const message = err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
-          setErrors({ form: message });
+          
+          // If it's a 409 conflict about email already existing, show error on email field
+          if (err instanceof ApiError && err.status === 409) {
+            setErrors({ email: message });
+          } else {
+            setErrors({ form: message });
+          }
         },
       }
     );
@@ -127,7 +133,7 @@ export function SignupForm() {
         </span>
       </div>
 
-      <SocialAuthButtons />
+      <SocialAuthButtons mode="signup" />
 
       <p className="text-center text-sm text-slate-400">
         Already have an account?{" "}
